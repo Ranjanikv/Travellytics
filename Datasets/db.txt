@@ -1,0 +1,50 @@
+import pandas as pd
+from sqlalchemy import create_engine
+
+# -------------------------------
+# 1. DATABASE CONNECTION
+# -------------------------------
+engine = create_engine("mysql+mysqlconnector://root:01052006@localhost:3306/tourism_db")
+
+print("Connected to database!")
+
+# -------------------------------
+# 2. FILE PATHS (CHANGE THESE)
+# -------------------------------
+files = {
+    "expensiture": r"C:\Users\kvran\Downloads\Expenditure_Dataset.xlsx",
+    "crowd_populaton": r"C:\Users\kvran\Downloads\Crowd population.csv"
+}
+
+# -------------------------------
+# 3. LOAD DATA INTO MYSQL
+# -------------------------------
+for table_name, file_path in files.items():
+    print(f"\nProcessing: {table_name}")
+
+    try:
+        # Read file
+        if file_path.endswith(".csv"):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+
+        # Clean column names
+        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+
+        # Drop empty rows
+        df.dropna(how="all", inplace=True)
+
+        # Add ID column
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "id"}, inplace=True)
+
+        # Upload to MySQL
+        df.to_sql(table_name, con=engine, if_exists="replace", index=False)
+
+        print(f"✅ Loaded {table_name}")
+
+    except Exception as e:
+        print(f"❌ Error in {table_name}: {e}")
+
+print("\n🎉 Done loading all datasets!")
